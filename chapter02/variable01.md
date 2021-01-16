@@ -173,4 +173,4 @@ func main() {
 ```
 
 
-![image-20210116224343962](/go_study_notes/chapter02/image-20210116224343962.png)
+![image-20210116224343962](https://github.com/suifeng930/go_study_notes/blob/main/chapter02/image-20210116224343962.png)
