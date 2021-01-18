@@ -174,3 +174,219 @@ func main() {
 
 
 ![image-20210116224343962](https://github.com/suifeng930/go_study_notes/blob/main/chapter02/image-20210116224343962.png)
+
+------
+
+### 2.2 命名
+
+------
+
+对变量、常量、函数、自定义类型进行命名，通常优先选用有**实际含义**，**易于阅读和理解**的字母或单词组合。
+
+------
+
+**命名建议：**
+
+* 以字母或下画线开始，由多个字母、数字和下画线组合而成。
+* 区分大小写
+* 使用驼峰（camel case） 拼写格式
+* 局部变量优先使用短名
+* 不要使用保留关键字
+* 不建议使用与预定义常量、类型、内置函数相同的名字
+* 专有名词通常会全部大写，例如`escapeHTML`
+
+```go
+package main
+
+func main(){
+  var c int                         //c 代替 count
+  for i:=0;i<10;i++{                //i 代替 index
+    	c++
+  }
+  println(c)
+}
+```
+
+符号名字首字母大写决定了其作用域。**首字母大写**的为导出成员，**可被包外引用**，而**小写**则**仅能在包内使用**。
+
+#### 空标识符
+
+------
+
+“_”通常作为忽略占位符使用，可以作为表达式左值，无法读取内容。
+
+------
+
+```go
+package main
+import( "strconv")
+
+func main() {
+  x,_ :=strconv.Atoi("12")              //忽略Atoi 的 err 返回值
+  println(x)
+}
+//空标识符可用来临时规避编译器对未使用变量和导入包的错误检查。但请注意，它是预置成员，不能重新定义。
+```
+
+### 2.3 常量
+
+------
+
+常量：表示运行时恒定不可改变的值，通常是一些字面量。使用常量就可用一个易于阅读理解的标识符号来代替“魔法数字”，也使得在调整常量值时，无须修改所有引用代码。**常量值**必须是**编译期可确定**的**字符**、**字符串**、**数字或布尔值**。可指定常量类型，或由编译器通过初始化值推断其类型。
+
+```go
+const x,y  int=123,0x22
+const s ="hello ,world"
+const c ='我'           //rune   (unicode code point)
+const(
+	i,f =1,0.12           //  int， float64（默认）
+  b		= false
+)
+```
+
+可在函数代码块中定义常量，不曾使用的常量不会引发编译错误。
+
+```go
+package main
+
+func main(){
+  const x=123
+  println(x)
+  
+  const y =1.23               // 未使用，不会引发编译错误
+  {
+    const x="anc"            //  在不同作用域定义同名常量
+    println(x)
+  }
+}
+// 输出
+// 123
+// anc
+```
+
+如果显示指定类型，必须确保常量左右值类型一致，需要时可做显示转换。右值不能超出常量类型取值范围，否则会引发溢出错误。
+
+```go
+const(
+	x,y  int =99,-999
+	b byte =byte(x)                 // x 被指定为int 类型，须显示转换为byte类型
+	n      =uint8(y)                // 错误： constant -999  overflows uint8
+)
+```
+
+常量值也可以是某些编译器能计算出结果的表达式，如unsafe.Sizeof``、`len`、`cap`等
+
+```go
+package main
+
+import ( "unsafe")
+const(
+  ptrSize =unsafe.Sizeof(uintptr(0))
+  strSize =len("hello, world")
+)
+```
+
+在常量组中如不指定类型和初始化值，则与上一行非空常量右值（表达式文本）相同。
+
+```go
+package main
+
+import ( "fmt")
+
+func main() {
+  const (
+  	x uint16 =120
+    y                            //与上一行x类型相同，右值相同
+    s ="abc"
+    z                           // 与s类型、右值相同
+  )
+  fmt.Printf("%T,%v \n",y,y)   //输出类型和值
+  fmt.Printf("%T,%v \n",z,z)
+}
+// 输出
+// uint16 ,120
+// string ,abc
+```
+
+#### 枚举
+
+------
+
+Go并没有明确意义上的`enum`定义，不过可以借助`iota`标识符实现一组自增常量值来实现枚举类型。
+
+```go
+const(
+	x =iota  // 0
+	y        // 1
+	z        // 2
+)
+const(
+	_  =iota   //0
+  KB =1<<(10*iota)   // 1<<(10*1)
+  MB                 // 1<<(10*2)
+  GB                 // 1<<(10*3)
+)
+```
+
+自增作用范围为常量组。可在多常量定义中使用多个`iota`，它们各自单独计数，只须确保组中每行常量的列数量相同即可。
+
+```go
+const(
+	_,_ =iota,iota*10
+	a,b                // 1,1*10
+	c,d                // 2,2*10
+)
+```
+
+如中断`iota`自增，则必须显示恢复。且后续自增值按行序递增。
+
+```go
+const(
+	a    =iota       // 0
+  b                // 1
+  c    =100        // 100
+  d                // 100(与上一行常量右值表达式相同)
+  e    =iota       // 4（恢复iota自增，计数包括c,d）
+  f                //5
+)
+```
+
+在实际编码中，建议用自定义类型实现用途明确的枚举类型。但这并不能将取值范围限定在预定义的枚举值内。
+
+```go
+ type color byte               // 自定义类型
+ 
+ const(
+ 	 black color =iota           //指定常量类型	
+   red
+   blue
+ )
+func test(c color) {
+  println(c)
+}
+func main(){
+  test(red)
+  test(100)                     // 100 并未超出color   byte类型取值范围
+  
+  x :=2
+  test(x)                      // 错误： cannot use x (type int) as type color in argument to test
+}
+```
+
+常量除“只读”外，和变量究竟有什么不同？
+
+```go
+var     x=0x100
+const   y=0x200
+
+func main(){
+  println(&x,x)
+  println(&y,y)                    //错误：  cannot take the address  of y
+}
+```
+
+不同于变量在运行期分配存储内存（非优化状态），**常量**通常**会被编译器**在**预处理阶段直接展开**，**作为指令数据使用**。
+
+数字常量不会分配存储空间，无须像变量那样通过内存寻址来取值，因此无法获取地址。
+
+
